@@ -23,6 +23,7 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.util.json.JSONException;
 import com.amazonaws.util.json.JSONObject;
 import com.sk7software.bincollection.exception.DeviceAddressClientException;
+import com.sk7software.bincollection.exception.UnauthorizedException;
 import com.sk7software.bincollection.model.EchoAddress;
 import com.sk7software.bincollection.model.Bin;
 import com.sk7software.bincollection.model.CustomerAddress;
@@ -111,8 +112,11 @@ public class WhensMyBinCollectionSpeechlet implements SpeechletV2 {
                 // There is a saved address so use it
                 return getBinCollectionResponse(speechletRequestEnvelope.getSession());
             }
+        } catch (UnauthorizedException ue) {
+            return getUnauthorizedExceptionResponse();
         } catch (DeviceAddressClientException de) {
-            return null; // TODO: Fix this
+            return errorResponse("An error has occurred looking up your device address. " +
+                                "Please use the Amazon Alexa app to fix the address for your Echo device.");
         }
     }
 
@@ -272,6 +276,8 @@ public class WhensMyBinCollectionSpeechlet implements SpeechletV2 {
             speechText.append("<say-as interpret-as=\"address\">");
             speechText.append(customerAddress.getAddress());
             speechText.append("</say-as>");
+        } catch (UnauthorizedException ue) {
+            return getUnauthorizedExceptionResponse();
         } catch (DeviceAddressClientException e) {
             speechText.append("Sorry, there was a problem finding your address");
             log.error(e.getMessage());
@@ -279,7 +285,6 @@ public class WhensMyBinCollectionSpeechlet implements SpeechletV2 {
         speechText.append("</speak>");
 
         SsmlOutputSpeech speech = new SsmlOutputSpeech();
-        //PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
         speech.setSsml(speechText.toString());
 
         // Create reprompt
@@ -331,6 +336,8 @@ public class WhensMyBinCollectionSpeechlet implements SpeechletV2 {
                 speechText.append("Sorry, I was unable to find an address that matches the one on your Echo. ");
                 speechText.append("Please use the Amazon Alexa app to check your address details for this Echo device.");
             }
+        } catch (UnauthorizedException ue) {
+            return getUnauthorizedExceptionResponse();
         } catch (DeviceAddressClientException e) {
             speechText.append("Sorry, there was a problem finding your address, please retry later");
             log.error(e.getMessage());
@@ -422,11 +429,38 @@ public class WhensMyBinCollectionSpeechlet implements SpeechletV2 {
         return response;
     }
 
+    private SpeechletResponse getUnauthorizedExceptionResponse() {
+        String speechText = "You have refused to allow access to your address information in the Alexa app. " +
+                            "The bin collection skill cannot function without address information. " +
+                            "To permit access to address information, enable this skill again, " +
+                            "and consent to provide address information in the Alexa app.";
+
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+        speech.setText(speechText);
+        SpeechletResponse response = new SpeechletResponse();
+        response.setOutputSpeech(speech);
+        response.setShouldEndSession(true);
+        return response;
+    }
+
+    private SpeechletResponse errorResponse(String message) {
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+        speech.setText(message);
+        SpeechletResponse response = new SpeechletResponse();
+        response.setOutputSpeech(speech);
+        response.setShouldEndSession(true);
+        return response;
+    }
+
     private EchoAddress fetchEchoAddress(SpeechletRequestEnvelope<? extends SpeechletRequest> speechletRequestEnvelope)
-        throws DeviceAddressClientException {
+        throws DeviceAddressClientException, UnauthorizedException {
         SystemState systemState = speechletRequestEnvelope.getContext().getState(SystemInterface.class, SystemState.class);
         deviceId = systemState.getDevice().getDeviceId();
         consentToken = speechletRequestEnvelope.getSession().getUser().getPermissions().getConsentToken();
+
+        if (consentToken == null || "".equals(consentToken)) {
+            throw new UnauthorizedException("Address consent not provided");
+        }
 
         String apiEndpoint = systemState.getApiEndpoint();
 
