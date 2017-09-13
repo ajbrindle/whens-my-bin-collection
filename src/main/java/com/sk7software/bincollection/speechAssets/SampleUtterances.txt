@@ -1,0 +1,9 @@
+BinCollectionIntent When's my bin collection
+BinColourIntent When will my {colour} bin be collected
+EchoAddressIntent What address do you have for me
+ThankYouIntent {thanks}
+ClearAddressIntent Reset my address
+ClearAddressIntent Clear my address
+ClearAddressIntent Clear my stored address
+ClearAddressIntent I have moved house
+ClearAddressIntent I have a new address

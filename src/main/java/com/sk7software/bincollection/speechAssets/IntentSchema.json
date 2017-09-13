@@ -1,0 +1,43 @@
+{
+  "intents": [
+    {
+      "intent": "BinCollectionIntent"
+    },
+    {
+      "intent": "EchoAddressIntent"
+    },
+    {
+      "intent": "ClearAddressIntent"
+    },
+    {
+      "slots": [
+        {
+          "name": "colour",
+          "type": "binColour"
+        }
+      ],
+      "intent": "BinColourIntent"
+    },
+    {
+      "slots": [
+        {
+          "name": "thanks",
+          "type": "thankyou"
+        }
+      ],
+      "intent": "ThankYouIntent"
+    },
+    {
+      "intent": "AMAZON.NoIntent"
+    },
+    {
+      "intent": "AMAZON.YesIntent"
+    },
+    {
+      "intent": "AMAZON.HelpIntent"
+    },
+    {
+      "intent": "AMAZON.StopIntent"
+    }
+  ]
+}
