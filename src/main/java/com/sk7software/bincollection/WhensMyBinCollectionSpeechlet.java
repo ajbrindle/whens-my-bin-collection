@@ -186,23 +186,8 @@ public class WhensMyBinCollectionSpeechlet implements SpeechletV2 {
                 if (collectedBins.size() > 0) {
                     speechText.append("Your next bin collection is ");
                     speechText.append(DateUtil.getDayDescription(collectionDate));
-                    speechText.append(". The ");
-
-                    int numBins = collectedBins.size();
-
-                    for (int i=0; i<numBins; i++) {
-                        speechText.append(collectedBins.get(i).getColour());
-                        if (i == numBins-2) {
-                            speechText.append(" and ");
-                        } else if (numBins > 1 && i < numBins-1) {
-                            speechText.append(", ");
-                        }
-                    }
-                    if (numBins > 1) {
-                        speechText.append(" bins");
-                    } else if (numBins == 1) {
-                        speechText.append(" bin");
-                    }
+                    speechText.append(". ");
+                    speechText.append(Bin.getSpokenBinList(collectedBins));
                     speechText.append(" will be collected.");
                 } else {
                     speechText.append("Sorry, I couldn't find any bins that are due for collection");
@@ -324,23 +309,28 @@ public class WhensMyBinCollectionSpeechlet implements SpeechletV2 {
             String matchedAddressStr = getJsonResponse(url);
             customerAddress = CustomerAddress.createFromJSON(new JSONObject(matchedAddressStr));
 
-            if (echoAddress.getAddressLine1() != null) {
-                speechText.append("The address I have for you is: ");
+            if (customerAddress.getUprn() != null && !"".equals(customerAddress.getUprn())) {
+                if (echoAddress.getAddressLine1() != null) {
+                    speechText.append("The address I have for you is: ");
+                    speechText.append("<say-as interpret-as=\"address\">");
+                    speechText.append(echoAddress.getAddressLine1());
+                    speechText.append(", ");
+                } else {
+                    speechText.append("<say-as interpret-as=\"address\">");
+                    speechText.append("The post code I have for you is: ");
+                }
+                speechText.append(echoAddress.getPostalCode());
+                speechText.append("</say-as>");
+                speechText.append(". I have matched this to: ");
                 speechText.append("<say-as interpret-as=\"address\">");
-                speechText.append(echoAddress.getAddressLine1());
-                speechText.append(", ");
+                speechText.append(customerAddress.getAddress());
+                speechText.append("</say-as>");
+                speechText.append(". Is this address OK to use?");
+                interactiveMode = Mode.ADDRESS_MATCH;
             } else {
-                speechText.append("<say-as interpret-as=\"address\">");
-                speechText.append("The post code I have for you is: ");
+                speechText.append("Sorry, I was unable to find an address that matches the one on your Echo. ");
+                speechText.append("Please use the Amazon Alexa app to check your address details for this Echo device.");
             }
-            speechText.append(echoAddress.getPostalCode());
-            speechText.append("</say-as>");
-            speechText.append(". I have matched this to: ");
-            speechText.append("<say-as interpret-as=\"address\">");
-            speechText.append(customerAddress.getAddress());
-            speechText.append("</say-as>");
-            speechText.append(". Is this address OK to use?");
-            interactiveMode = Mode.ADDRESS_MATCH;
         } catch (DeviceAddressClientException e) {
             speechText.append("Sorry, there was a problem finding your address, please retry later");
             log.error(e.getMessage());

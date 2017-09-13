@@ -25,6 +25,11 @@ public class Bin {
 
     public Bin() {}
 
+    public Bin(String colour, DateTime date) {
+        this.colour = colour;
+        this.date = date;
+    }
+
     public static List<Bin> createFromJSON(JSONObject response) throws IOException, JSONException {
         Bin bin;
 
@@ -54,11 +59,32 @@ public class Bin {
     }
 
     public boolean isCollectedOnDate(DateTime collectionDate) {
-        if (getDate().equals(collectionDate)) {
+        if (getDate().withTimeAtStartOfDay().equals(collectionDate.withTimeAtStartOfDay())) {
             return true;
         }
         return false;
     }
 
+    public static String getSpokenBinList(List<Bin> bins) {
+        StringBuilder speechText = new StringBuilder();
+        speechText.append("The ");
 
+        int numBins = bins.size();
+
+        for (int i=0; i<numBins; i++) {
+            speechText.append(bins.get(i).getColour());
+            if (i == numBins-2) {
+                speechText.append(" and ");
+            } else if (numBins > 1 && i < numBins-1) {
+                speechText.append(", ");
+            }
+        }
+        if (numBins > 1) {
+            speechText.append(" bins");
+        } else if (numBins == 1) {
+            speechText.append(" bin");
+        }
+
+        return speechText.toString();
+    }
 }

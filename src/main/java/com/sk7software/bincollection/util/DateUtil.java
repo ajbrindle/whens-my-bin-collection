@@ -16,7 +16,8 @@ public class DateUtil {
 
     public static int calcNumberOfDays(DateTime date) {
         DateTime now = new DateTime();
-        int days = Days.daysBetween(now.toLocalDate(), date.toLocalDate()).getDays();
+        int days = Days.daysBetween(now.withTimeAtStartOfDay().toLocalDate(),
+                date.withTimeAtStartOfDay().toLocalDate()).getDays();
         if (days < 0) days = 0;
         return days;
     }
