@@ -1,6 +1,9 @@
 BinCollectionIntent When's my bin collection
+BinCollectionIntent When's my rubbish collection
 BinColourIntent When will my {colour} bin be collected
+BinColourIntent What about my {colour} bin
 EchoAddressIntent What address do you have for me
+EchoAddressIntent Tell me my address
 ThankYouIntent {thanks}
 ClearAddressIntent Reset my address
 ClearAddressIntent Clear my address
