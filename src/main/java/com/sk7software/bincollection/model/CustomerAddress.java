@@ -37,4 +37,8 @@ public class CustomerAddress {
     public void setAddress(String address) {
         this.address = address;
     }
+
+    public String toString() {
+        return address + " (" + uprn + ")";
+    }
 }

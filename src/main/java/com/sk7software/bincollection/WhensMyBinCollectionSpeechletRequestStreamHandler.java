@@ -1,9 +1,19 @@
 package com.sk7software.bincollection;
 
-import java.util.HashSet;
-import java.util.Set;
+import com.amazon.ask.Skill;
+import com.amazon.ask.SkillStreamHandler;
+import com.amazon.ask.Skills;
+import com.amazon.ask.dispatcher.exception.ExceptionHandler;
+import com.amazon.ask.dispatcher.request.handler.HandlerInput;
+import com.amazon.ask.model.Response;
+import com.amazon.ask.response.ResponseBuilder;
+import com.sk7software.bincollection.handler.CollectionDateHandler;
+import com.sk7software.bincollection.handler.LaunchRequestHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.amazon.speech.speechlet.lambda.SpeechletRequestStreamHandler;
+import java.util.Optional;
+
 
 /**
  * This class could be the handler for an AWS Lambda function powering an Alexa Skills Kit
@@ -12,18 +22,38 @@ import com.amazon.speech.speechlet.lambda.SpeechletRequestStreamHandler;
  * this project using the {@code lambda-compile} Ant task and upload the resulting zip file to power
  * your function.
  */
-public class WhensMyBinCollectionSpeechletRequestStreamHandler extends SpeechletRequestStreamHandler {
-    private static final Set<String> supportedApplicationIds = new HashSet<>();
-    static {
-        /*
-         * This Id can be found on https://developer.amazon.com/edw/home.html#/ "Edit" the relevant
-         * Alexa Skill and put the relevant Application Ids in this Set.
-         */
-        supportedApplicationIds.add("amzn1.ask.skill.cd3c8ac4-75ca-4a0f-be29-3f39fcd62497");
+public class WhensMyBinCollectionSpeechletRequestStreamHandler extends SkillStreamHandler {
+    private static final Logger log = LoggerFactory.getLogger(WhensMyBinCollectionSpeechletRequestStreamHandler.class);
+
+    private static Skill getSkill() {
+        return Skills.standard()
+                .addRequestHandlers(
+                        new LaunchRequestHandler(),
+                        new CollectionDateHandler())
+                .addExceptionHandler(
+                        new ExceptionHandler() {
+                            @Override
+                            public boolean canHandle(HandlerInput handlerInput, Throwable throwable) {
+                                return true;
+                            }
+
+                            @Override
+                            public Optional<Response> handle(HandlerInput handlerInput, Throwable throwable) {
+                                throwable.printStackTrace();
+                                log.debug(throwable.getMessage());
+                                return new ResponseBuilder()
+                                        .withSpeech("There was an error looking up the collection dates")
+                                        .withShouldEndSession(true)
+                                        .build();
+                            }
+                        }
+                )
+                .withSkillId("amzn1.ask.skill.cd3c8ac4-75ca-4a0f-be29-3f39fcd62497")
+                .build();
     }
 
+
     public WhensMyBinCollectionSpeechletRequestStreamHandler() {
-        super(new WhensMyBinCollectionSpeechlet(), supportedApplicationIds);
+        super(getSkill());
     }
-    
 }

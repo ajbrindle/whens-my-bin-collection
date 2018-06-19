@@ -4,12 +4,14 @@ import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONException;
 import com.amazonaws.util.json.JSONObject;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -20,6 +22,8 @@ import java.util.List;
 public class Bin {
     private String colour;
 
+    //    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    @JsonSerialize(using = JSONDateSerializer.class)
     @JsonDeserialize(using = JSONDateAdapter.class)
     private DateTime date;
 
@@ -58,6 +62,7 @@ public class Bin {
         this.date = date;
     }
 
+    @JsonIgnore
     public boolean isCollectedOnDate(DateTime collectionDate) {
         if (getDate().withTimeAtStartOfDay().equals(collectionDate.withTimeAtStartOfDay())) {
             return true;
@@ -65,6 +70,7 @@ public class Bin {
         return false;
     }
 
+    @JsonIgnore
     public static String getSpokenBinList(List<Bin> bins) {
         StringBuilder speechText = new StringBuilder();
         speechText.append("The ");

@@ -1,6 +1,6 @@
 package com.sk7software.bincollection.storage;
 
-import com.amazon.speech.speechlet.Session;
+import com.amazon.ask.dispatcher.request.handler.HandlerInput;
 import com.sk7software.bincollection.model.CustomerAddress;
 
 public class CustomerAddressDAO {
@@ -10,9 +10,9 @@ public class CustomerAddressDAO {
         this.dynamoDbClient = dynamoDbClient;
     }
 
-    public CustomerAddress getAddress(Session session) {
+    public CustomerAddress getAddress(HandlerInput input) {
         CustomerAddressData item = new CustomerAddressData();
-        item.setCustomerId(session.getUser().getUserId());
+        item.setCustomerId(input.getRequestEnvelope().getSession().getUser().getUserId());
 
         item = dynamoDbClient.loadItem(item);
 
@@ -23,17 +23,17 @@ public class CustomerAddressDAO {
         return item.getAddressItem();
     }
 
-    public void saveAddress(Session session, CustomerAddress ma) {
+    public void saveAddress(HandlerInput input, CustomerAddress ma) {
         CustomerAddressData item = new CustomerAddressData();
-        item.setCustomerId(session.getUser().getUserId());
+        item.setCustomerId(input.getRequestEnvelope().getSession().getUser().getUserId());
         item.setAddressItem(ma);
 
         dynamoDbClient.saveItem(item);
     }
 
-    public void deleteAddress(Session session) {
+    public void deleteAddress(HandlerInput input) {
         CustomerAddressData item = new CustomerAddressData();
-        item.setCustomerId(session.getUser().getUserId());
+        item.setCustomerId(input.getRequestEnvelope().getSession().getUser().getUserId());
         dynamoDbClient.deleteItem(item);
     }
 

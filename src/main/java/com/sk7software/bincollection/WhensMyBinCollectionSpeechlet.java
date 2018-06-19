@@ -6,34 +6,6 @@
 
 package com.sk7software.bincollection;
 
-import com.amazon.speech.json.SpeechletRequestEnvelope;
-import com.amazon.speech.slu.Intent;
-import com.amazon.speech.slu.Slot;
-import com.amazon.speech.speechlet.*;
-import com.amazon.speech.speechlet.interfaces.system.SystemInterface;
-import com.amazon.speech.speechlet.interfaces.system.SystemState;
-import com.amazon.speech.ui.PlainTextOutputSpeech;
-import com.amazon.speech.ui.Reprompt;
-
-import com.amazon.speech.ui.SimpleCard;
-import com.amazon.speech.ui.SsmlOutputSpeech;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
-import com.amazonaws.util.json.JSONException;
-import com.amazonaws.util.json.JSONObject;
-import com.sk7software.bincollection.exception.DeviceAddressClientException;
-import com.sk7software.bincollection.exception.UnauthorizedException;
-import com.sk7software.bincollection.model.EchoAddress;
-import com.sk7software.bincollection.model.Bin;
-import com.sk7software.bincollection.model.CustomerAddress;
-import com.sk7software.bincollection.model.Mode;
-import com.sk7software.bincollection.storage.CustomerAddressDAO;
-import com.sk7software.bincollection.storage.CustomerAddressDynamoDBClient;
-import com.sk7software.bincollection.util.AlexaDeviceAddressClient;
-import com.sk7software.bincollection.util.DateUtil;
-import org.apache.commons.io.IOUtils;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,9 +24,9 @@ import java.util.List;
  *
  * @author Andrew
  */
-public class WhensMyBinCollectionSpeechlet implements SpeechletV2 {
+public class WhensMyBinCollectionSpeechlet {
     private static final Logger log = LoggerFactory.getLogger(com.sk7software.bincollection.WhensMyBinCollectionSpeechlet.class);
-
+/*
     private static final String COLLECTION_URL = "http://www.sk7software.co.uk/bins?id=";
     private static final String ADDRESS_MATCH_URL = "http://www.sk7software.co.uk/bins/inputPostcode.php?";
 
@@ -296,9 +268,7 @@ public class WhensMyBinCollectionSpeechlet implements SpeechletV2 {
         return SpeechletResponse.newAskResponse(speech, reprompt);
     }
 
-    /*
-     * Calls service to match Echo address with addresses for the supplied postcode
-     */
+
     private SpeechletResponse getAddressMatchResponse(SpeechletRequestEnvelope<? extends SpeechletRequest> speechletRequestEnvelope) {
         StringBuilder speechText = new StringBuilder("<speak>");
         EchoAddress echoAddress = null;
@@ -526,11 +496,7 @@ public class WhensMyBinCollectionSpeechlet implements SpeechletV2 {
         return collectedBins;
     }
 
-    /**
-     * Creates a {@code SpeechletResponse} for the help intent.
-     *
-     * @return SpeechletResponse spoken and visual response for the given intent
-     */
+
     private SpeechletResponse getHelpResponse() {
         StringBuilder helpText = new StringBuilder();
         helpText.append("You can ask when's my bin collection to get the date of ");
@@ -580,5 +546,5 @@ public class WhensMyBinCollectionSpeechlet implements SpeechletV2 {
         
         return stopResponse;
     }
-
+*/
 }
