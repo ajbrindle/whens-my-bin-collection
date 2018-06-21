@@ -7,8 +7,10 @@ import com.amazon.ask.dispatcher.exception.ExceptionHandler;
 import com.amazon.ask.dispatcher.request.handler.HandlerInput;
 import com.amazon.ask.model.Response;
 import com.amazon.ask.response.ResponseBuilder;
+import com.sk7software.bincollection.handler.AddressHandler;
 import com.sk7software.bincollection.handler.CollectionDateHandler;
-import com.sk7software.bincollection.handler.LaunchRequestHandler;
+import com.sk7software.bincollection.handler.HandleEverythingHandler;
+import com.sk7software.bincollection.handler.StandardResponseHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,8 +30,7 @@ public class WhensMyBinCollectionSpeechletRequestStreamHandler extends SkillStre
     private static Skill getSkill() {
         return Skills.standard()
                 .addRequestHandlers(
-                        new LaunchRequestHandler(),
-                        new CollectionDateHandler())
+                        new HandleEverythingHandler())
                 .addExceptionHandler(
                         new ExceptionHandler() {
                             @Override
