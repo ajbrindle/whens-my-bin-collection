@@ -26,6 +26,8 @@ public class StandardResponseHandler extends BinCollectionHandler {
                 input.matches(intentName("AMAZON.NoIntent")) ||
                 input.matches(intentName("AMAZON.StopIntent"))) {
             return getStopResponse();
+        } else if (input.matches(intentName("AMAZON.HelpIntent"))) {
+            return getHelpResponse();
         } else {
             return Optional.empty();
         }
@@ -53,6 +55,19 @@ public class StandardResponseHandler extends BinCollectionHandler {
         return new ResponseBuilder()
                 .withSpeech(stopText)
                 .withShouldEndSession(true)
+                .build();
+    }
+
+    private Optional<Response> getHelpResponse() {
+        StringBuilder helpText = new StringBuilder();
+        helpText.append("You can ask when's my bin collection to get the date of ");
+        helpText.append("your next collection and the bins that will be collected. ");
+        helpText.append("You can ask when a particular colour bin will next be collected by saying, ");
+        helpText.append("for example, when will my blue bin be collected. ");
+
+        return new ResponseBuilder()
+                .withSpeech(helpText.toString())
+                .withReprompt("")
                 .build();
     }
 }
