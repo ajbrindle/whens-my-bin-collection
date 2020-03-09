@@ -10,6 +10,12 @@ public class CustomerAddressDAO {
         this.dynamoDbClient = dynamoDbClient;
     }
 
+    public void ping() {
+        CustomerAddressData item = new CustomerAddressData();
+        item.setCustomerId("nil");
+        dynamoDbClient.loadItem(item);
+    }
+
     public CustomerAddress getAddress(HandlerInput input) {
         CustomerAddressData item = new CustomerAddressData();
         item.setCustomerId(input.getRequestEnvelope().getSession().getUser().getUserId());

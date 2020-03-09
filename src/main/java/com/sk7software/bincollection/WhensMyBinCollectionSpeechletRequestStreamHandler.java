@@ -5,10 +5,12 @@ import com.amazon.ask.SkillStreamHandler;
 import com.amazon.ask.Skills;
 import com.amazon.ask.dispatcher.exception.ExceptionHandler;
 import com.amazon.ask.dispatcher.request.handler.HandlerInput;
+import com.amazon.ask.model.IntentRequest;
 import com.amazon.ask.model.Response;
 import com.amazon.ask.response.ResponseBuilder;
 import com.sk7software.bincollection.handler.CollectionDateHandler;
 import com.sk7software.bincollection.handler.LaunchRequestHandler;
+import com.sk7software.bincollection.handler.PingRequestHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +31,8 @@ public class WhensMyBinCollectionSpeechletRequestStreamHandler extends SkillStre
         return Skills.standard()
                 .addRequestHandlers(
                         new LaunchRequestHandler(),
-                        new CollectionDateHandler())
+                        new CollectionDateHandler(),
+                        new PingRequestHandler())
                 .addExceptionHandler(
                         new ExceptionHandler() {
                             @Override
@@ -39,7 +42,10 @@ public class WhensMyBinCollectionSpeechletRequestStreamHandler extends SkillStre
 
                             @Override
                             public Optional<Response> handle(HandlerInput handlerInput, Throwable throwable) {
-                                throwable.printStackTrace();
+                                if (handlerInput.getRequestEnvelope().getRequest() instanceof IntentRequest) {
+                                    IntentRequest ir = (IntentRequest)handlerInput.getRequestEnvelope().getRequest();
+                                    log.debug("ERROR on intent: " + ir.getIntent().getName());
+                                }
                                 log.debug(throwable.getMessage());
                                 return new ResponseBuilder()
                                         .withSpeech("There was an error looking up the collection dates")

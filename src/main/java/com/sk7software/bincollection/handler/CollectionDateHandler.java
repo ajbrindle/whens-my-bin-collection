@@ -17,10 +17,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sk7software.bincollection.exception.DeviceAddressClientException;
 import com.sk7software.bincollection.exception.UnauthorizedException;
-import com.sk7software.bincollection.model.Bin;
-import com.sk7software.bincollection.model.CustomerAddress;
-import com.sk7software.bincollection.model.EchoAddress;
-import com.sk7software.bincollection.model.Mode;
+import com.sk7software.bincollection.model.*;
 import com.sk7software.bincollection.storage.CustomerAddressDAO;
 import com.sk7software.bincollection.storage.CustomerAddressDynamoDBClient;
 import com.sk7software.bincollection.util.AlexaDeviceAddressClient;
@@ -31,10 +28,7 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -42,6 +36,9 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static com.amazon.ask.request.Predicates.intentName;
 
@@ -49,6 +46,7 @@ public class CollectionDateHandler implements RequestHandler {
     private static final Logger log = LoggerFactory.getLogger(com.sk7software.bincollection.handler.CollectionDateHandler.class);
     private static final String COLLECTION_URL = "http://www.sk7software.co.uk/bins?id=";
     private static final String ADDRESS_MATCH_URL = "http://www.sk7software.co.uk/bins/inputPostcode.php?";
+    private static final String PROGRESSIVE_API_SUFFIX = "/v1/directives";
 
     private static final String KEY_MODE = "mode";
     private static final String KEY_ADDRESS = "address";
@@ -134,6 +132,8 @@ public class CollectionDateHandler implements RequestHandler {
     public Optional<Response> checkAddress(final HandlerInput input) {
 
         try {
+            log.debug("Checking Addres....");
+
             // See if address has been stored
             if (customerAddressDao.getAddress(input) == null) {
                 // Address not saved for this user so try to look it up
@@ -153,6 +153,7 @@ public class CollectionDateHandler implements RequestHandler {
                 }
             } else {
                 // There is a saved address so use it
+                log.debug("Address check complete - looking up bin information");
                 return getBinCollectionResponse(input);
             }
         } catch (UnauthorizedException ue) {
@@ -178,31 +179,55 @@ public class CollectionDateHandler implements RequestHandler {
             CustomerAddress ma = customerAddressDao.getAddress(input);
             log.debug(ma.toString());
 
-            String url = COLLECTION_URL + ma.getUprn();
-            String binsStr = getJsonResponse(url);
-            log.debug("Response: " + binsStr);
+            // Kick-off call to get bin information asynchronously
+            CompletableFuture<List<Bin>> completableFuture =
+                    new CompletableFuture<>();
 
-            bins = Bin.createFromJSON(new JSONObject(binsStr));
-
-            ObjectMapper mapper = new ObjectMapper();
-            input.getAttributesManager().getSessionAttributes().put(KEY_BINS, mapper.convertValue(bins, new TypeReference<List<Bin>>(){}));
-
-            collectionDate = getNextCollectionDate(bins);
-
-            if (collectionDate != null) {
-                collectedBins = getBinsCollectedOnDate(bins, collectionDate);
-
-                if (collectedBins.size() > 0) {
-                    speechText.append("Your next bin collection is ");
-                    speechText.append(DateUtil.getDayDescription(collectionDate));
-                    speechText.append(". ");
-                    speechText.append(Bin.getSpokenBinList(collectedBins));
-                    speechText.append(" will be collected.");
-                } else {
-                    speechText.append("Sorry, I couldn't find any bins that are due for collection");
+            Executors.newCachedThreadPool().submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        String url = COLLECTION_URL + ma.getUprn();
+                        String binsStr = getJsonResponse(url);
+                        log.debug("Response: " + binsStr);
+                        completableFuture.complete(Bin.createFromJSON(new JSONObject(binsStr)));
+                    } catch (JSONException | IOException e) {
+                        completableFuture.complete(null);
+                        log.error(e.getMessage());
+                    }
                 }
+            });
+
+            // Meanwhile, play progress message
+            sendProgressMessage(input);
+
+            // Get result of async call
+            bins = completableFuture.get(8000, TimeUnit.MILLISECONDS);
+
+            if (bins == null) {
+                speechText.append("Sorry, there was a problem finding your bin collection dates");
             } else {
-                speechText.append("Sorry, I couldn't work out your next collection date");
+                ObjectMapper mapper = new ObjectMapper();
+                input.getAttributesManager().getSessionAttributes().put(KEY_BINS, mapper.convertValue(bins, new TypeReference<List<Bin>>() {
+                }));
+
+                collectionDate = getNextCollectionDate(bins);
+
+                if (collectionDate != null && !collectionDate.isBeforeNow()) {
+                    collectedBins = getBinsCollectedOnDate(bins, collectionDate);
+
+                    if (collectedBins.size() > 0) {
+                        speechText.append("Your next bin collection is ");
+                        speechText.append(DateUtil.getDayDescription(collectionDate));
+                        speechText.append(". ");
+                        speechText.append(Bin.getSpokenBinList(collectedBins));
+                        speechText.append(" will be collected.");
+                    } else {
+                        speechText.append("Sorry, I couldn't find any bins that are due for collection");
+                    }
+                } else {
+                    speechText.append("Sorry, I couldn't work out your next collection date");
+                }
             }
         } catch (Exception e) {
             speechText.append("Sorry, there was a problem finding your bin collection dates");
@@ -404,6 +429,8 @@ public class CollectionDateHandler implements RequestHandler {
 
             // set up url connection to get retrieve information back
             con.setRequestMethod("GET");
+            con.setConnectTimeout(10000);
+            con.setReadTimeout(20000);
 
             inputStream = new InputStreamReader(con.getInputStream(), Charset.forName("US-ASCII"));
             bufferedReader = new BufferedReader(inputStream);
@@ -560,5 +587,41 @@ public class CollectionDateHandler implements RequestHandler {
             log.error("Unable to deserialise bin list: " + ie.getMessage());
         }
         return null;
+    }
+
+    private static void sendProgressMessage(HandlerInput input) {
+        String authToken = input.getRequestEnvelope().getContext().getSystem().getApiAccessToken();
+        String requestId = input.getRequestEnvelope().getRequest().getRequestId();
+        String directiveURL = input.getRequestEnvelope().getContext().getSystem().getApiEndpoint() + PROGRESSIVE_API_SUFFIX;
+        String speech = "I'm just looking up the bin collection dates for your address.";
+        ProgressiveAPIRequest request = new ProgressiveAPIRequest(requestId, speech);
+
+        OutputStreamWriter outputStream = null;
+
+        try {
+            URL url = new URL(directiveURL);
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            log.debug("Calling " + url.toString());
+
+            // set up url connection to get retrieve information back
+            con.setRequestMethod("POST");
+            con.setRequestProperty("Authorization", "Bearer " + authToken);
+            con.setRequestProperty("Content-Type", "application/json");
+            con.setDoInput(true);
+            con.setDoOutput(true);
+
+            outputStream = new OutputStreamWriter(con.getOutputStream());
+            JSONObject requestBody = new JSONObject(request);
+            outputStream.write(requestBody.toString());
+            outputStream.flush();
+
+            if (con.getResponseCode() != 204) {
+                log.error("ProgressiveAPI error: " + con.getResponseCode() + ": " + con.getResponseMessage());
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        } finally {
+            IOUtils.closeQuietly(outputStream);
+        }
     }
 }
