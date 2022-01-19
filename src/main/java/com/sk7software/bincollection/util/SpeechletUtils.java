@@ -1,19 +1,24 @@
 package com.sk7software.bincollection.util;
 
 import com.amazon.ask.dispatcher.request.handler.HandlerInput;
+import com.amazon.ask.model.interfaces.alexa.presentation.apl.RenderDocumentDirective;
 import com.amazon.ask.model.interfaces.display.*;
 import com.amazon.ask.response.ResponseBuilder;
-import com.amazonaws.util.StringUtils;
+import com.amazon.ask.request.*;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sk7software.bincollection.model.Bin;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UnsupportedEncodingException;
+import java.io.File;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class SpeechletUtils {
     private static final Logger log = LoggerFactory.getLogger(SpeechletUtils.class);
@@ -38,9 +43,10 @@ public class SpeechletUtils {
                                      DateTime collectionDate,
                                      ResponseBuilder responseBuilder) {
         if (bins.size() > 0) {
-            if (new DeviceCapability(handlerInput).hasDisplay()) {
+
+            if (RequestHelper.forHandlerInput(handlerInput).getSupportedInterfaces().getAlexaPresentationAPL() != null) {
                 log.debug("Device has display");
-                StringBuilder artworkUrl = new StringBuilder("http://www.sk7software.co.uk/bins/makeImage.php?bins=");
+                StringBuilder artworkUrl = new StringBuilder("https://www.sk7software.co.uk/bins/makeImage.php?bins=");
 
                 for (Bin bin : bins) {
                     artworkUrl.append(bin.getColour().toLowerCase());
@@ -52,33 +58,35 @@ public class SpeechletUtils {
                 log.debug("URL: " + artworkUrl.toString());
 
                 try {
-                    String imageUrl = URLEncoder.encode(artworkUrl.toString(), "UTF-8");
                     String collectionDateStr = "Next collection: " + DateUtil.getDayDescription(collectionDate);
-                    responseBuilder.addRenderTemplateDirective(createDisplayTemplate(artworkUrl.toString(), collectionDateStr));
-                } catch (UnsupportedEncodingException e) {
+
+                    String documentName = "binDisplay.json";
+                    String token = "binDisplayToken";
+
+                    ObjectMapper mapper = new ObjectMapper();
+                    TypeReference<HashMap<String, Object>> documentMapType = new TypeReference<HashMap<String, Object>>() {
+                    };
+
+                    Map<String, Object> document = mapper.readValue(new File(documentName), documentMapType);
+                    Map<String, Object> data = new HashMap<>();
+                    Map<String, String> dataValues = new HashMap<>();
+
+                    dataValues.put("text", collectionDateStr);
+                    dataValues.put("imageSource", artworkUrl.toString());
+                    data.put("binDisplayData", dataValues);
+
+                    RenderDocumentDirective documentDirective = RenderDocumentDirective.builder()
+                            .withToken(token)
+                            .withDocument(document)
+                            .withDatasources(data)
+                            .build();
+                    responseBuilder.addDirective(documentDirective);
+                } catch (Exception e) {
                     log.debug("Error building URL: " + e.getMessage());
                 }
+            } else {
+                log.debug("Device has no display");
             }
         }
-    }
-
-    private static Template createDisplayTemplate(String imageUrl, String title) {
-        List<ImageInstance> artwork = new ArrayList<>();
-        artwork.add(ImageInstance.builder()
-                .withUrl(imageUrl)
-                .build());
-//        List<ImageInstance> transparent = new ArrayList<>();
-//        artwork.add(ImageInstance.builder()
-//                .withUrl("http://www.sk7software.co.uk/bins/images/transparent.png")
-//                .build());
-        return BodyTemplate7.builder()
-                .withTitle(title)
-                .withImage(Image.builder()
-                        .withSources(artwork)
-                        .build())
-//                .withBackgroundImage(Image.builder()
-//                        .withSources(artwork)
-//                        .build())
-                .build();
     }
 }

@@ -25,8 +25,6 @@ import java.util.Optional;
  * your function.
  */
 public class WhensMyBinCollectionSpeechletRequestStreamHandler extends SkillStreamHandler {
-    private static final Logger log = LoggerFactory.getLogger(WhensMyBinCollectionSpeechletRequestStreamHandler.class);
-
     private static Skill getSkill() {
         return Skills.standard()
                 .addRequestHandlers(
@@ -44,9 +42,7 @@ public class WhensMyBinCollectionSpeechletRequestStreamHandler extends SkillStre
                             public Optional<Response> handle(HandlerInput handlerInput, Throwable throwable) {
                                 if (handlerInput.getRequestEnvelope().getRequest() instanceof IntentRequest) {
                                     IntentRequest ir = (IntentRequest)handlerInput.getRequestEnvelope().getRequest();
-                                    log.debug("ERROR on intent: " + ir.getIntent().getName());
                                 }
-                                log.debug(throwable.getMessage());
                                 return new ResponseBuilder()
                                         .withSpeech("There was an error looking up the collection dates")
                                         .withShouldEndSession(true)
